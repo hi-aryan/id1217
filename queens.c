@@ -1,12 +1,3 @@
-/*
- * Homework 1: Problem 7 (8-Queens)
- * Author: [Your Name]
- * Date: [Today's Date]
- *
- * Description: Solves the 8-Queens problem using Pthreads and a
- * Bag-of-Tasks approach for domain decomposition.
- */
-
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +16,7 @@ typedef struct {
 } Task;
 
 // queue definition
-#define QUEUE_SIZE 256 // Enough to hold tasks for depth 2 or 3
+#define QUEUE_SIZE 256 // enough to hold tasks for depth 2 or 3
 typedef struct {
   Task tasks[QUEUE_SIZE];
   int front;
@@ -112,7 +103,6 @@ int is_safe(int board[], int row, int col) {
 
     // 2. check diagonals
     // the vertical distance (row - i) must not equal the horizontal distance
-    // |col - other_col|
     if (abs(other_col - col) == abs(i - row)) {
       return 0;
     }
@@ -125,8 +115,7 @@ void solve(int board[], int row) {
   if (row == SIZE) {
     pthread_mutex_lock(&mutex_sol);
     total_solutions++;
-    print_board(board); // uncomment AND RECOMPILE to see solutions (slows down
-                        // timing!!)
+    print_board(board); // uncomment AND RECOMPILE to see solutions (slows down timing!!)
     pthread_mutex_unlock(&mutex_sol);
     return;
   }
@@ -134,8 +123,8 @@ void solve(int board[], int row) {
   // recursive step: try all columns in current row
   for (int col = 0; col < SIZE; col++) {
     if (is_safe(board, row, col)) {
-      board[row] = col;      // place queen
-      solve(board, row + 1); // recurse
+      board[row] = col; // place queen
+      solve(board, row + 1);
     }
   }
 }
@@ -152,7 +141,7 @@ void *worker(void *arg) {
 // producer: generates partial tasks up to a certain depth
 void generate_tasks(int board[], int row) {
   // split depth: how deep the producer goes before handing off
-  // depth 2 usually generates enough tasks (~40-50 for 8 queens)
+  // depth 2 = ~40-50 tasks for 8 queens
   const int SPLIT_DEPTH = 2;
 
   if (row == SPLIT_DEPTH) {

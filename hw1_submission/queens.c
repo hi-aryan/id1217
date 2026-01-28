@@ -1,233 +1,247 @@
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include <stdbool.h>
 #include <sys/time.h>
+#include <unistd.h>
 
-#define SIZE 8 // board size (8x8)
+#define N 8             // Number of queens
+#define NUM_THREADS 8
+#define QUEUE_SIZE 256
+#define SPLIT_DEPTH 3   // Producer goes to this depth
 
-// shared global variables
-int total_solutions = 0;
-pthread_mutex_t mutex_sol;
+// DATA STRUCTURES
 
-// task definition: a partial board state
-typedef struct {
-  int board[SIZE];
-  int start_row;
+// Task: Represents a snapshot of the board logic, not visual board
+typedef struct
+{
+    int startRow; // Workers start solving from here
+    bool col[N]; // Lookup: is column 'i' occupied?
+    bool posDiag[2 * N]; // Lookup: is r + c (positive diagonal) occupied?
+    bool negDiag[2 * N]; // Lookup: is r - c (negative diagonal) occupied?
 } Task;
 
-// queue definition
-#define QUEUE_SIZE 256 // enough to hold tasks for depth 2 or 3
-typedef struct {
-  Task tasks[QUEUE_SIZE];
-  int front;
-  int rear;
-  int count;
-  int done_producing; // flag to signal no more tasks will be added
-  pthread_mutex_t mutex;
-  pthread_cond_t cond_not_empty; // CV
-  pthread_cond_t cond_not_full; // CV
-} Queue;
+// Circular buffer queue for tasks (thread safe)
+typedef struct
+{
+    Task tasks[QUEUE_SIZE];
+    int readIndex; // Controlled by producer
+    int writeIndex; // Controlled by worker
+    int count;
+    bool productionComplete;
+    pthread_mutex_t mutex;
+    pthread_cond_t condNotEmpty;
+    pthread_cond_t condNotFull;
+} TaskQueue;
 
-Queue task_queue;
-pthread_mutex_t mutex_sol; // for updating total_solutions
+TaskQueue taskQueue;
 
-// helper to initialize queue
-void init_queue(Queue *q) {
-  q->front = 0;
-  q->rear = 0;
-  q->count = 0;
-  q->done_producing = 0;
-  pthread_mutex_init(&q->mutex, NULL);
-  pthread_cond_init(&q->cond_not_empty, NULL);
-  pthread_cond_init(&q->cond_not_full, NULL);
+// TASK QUEUE HELPER FUNCTIONS
+
+void initQueue(TaskQueue* q)
+{
+    q->readIndex = 0;
+    q->writeIndex = 0;
+    q->count = 0;
+    q->productionComplete = false;
+    pthread_mutex_init(&q->mutex, NULL);
+    pthread_cond_init(&q->condNotEmpty, NULL);
+    pthread_cond_init(&q->condNotFull, NULL);
 }
 
-// helper to push task (PRODUCER TASK)
-void push_task(Queue *q, Task t) {
-  pthread_mutex_lock(&q->mutex);
-  while (q->count == QUEUE_SIZE) {
-    pthread_cond_wait(&q->cond_not_full, &q->mutex);
-  }
-  q->tasks[q->rear] = t;
-  q->rear = (q->rear + 1) % QUEUE_SIZE;
-  q->count++;
-  pthread_cond_signal(&q->cond_not_empty);
-  pthread_mutex_unlock(&q->mutex);
-}
+// Producer calls this
+void pushTask(TaskQueue* q, Task t)
+{
+    pthread_mutex_lock(&q->mutex);
 
-// helper to pop task (CONSUMER TASK)
-// returns 1 if managed to pop, 0 if empty and done_producing
-int pop_task(Queue *q, Task *t) {
-  pthread_mutex_lock(&q->mutex);
-  while (q->count == 0 && !q->done_producing) {
-    pthread_cond_wait(&q->cond_not_empty, &q->mutex);
-  }
-  if (q->count == 0 && q->done_producing) {
+    // Wait while queue is full
+    while (q->count == QUEUE_SIZE)
+    {
+        pthread_cond_wait(&q->condNotFull, &q->mutex);
+    }
+
+    q->tasks[q->writeIndex] = t;
+    q->writeIndex = (q->writeIndex + 1) % QUEUE_SIZE;
+    q->count++;
+
+    // Wake up sleeping worker
+    pthread_cond_signal(&q->condNotEmpty);
     pthread_mutex_unlock(&q->mutex);
-    return 0;
-  }
-  *t = q->tasks[q->front];
-  q->front = (q->front + 1) % QUEUE_SIZE;
-  q->count--;
-  pthread_cond_signal(&q->cond_not_full);
-  pthread_mutex_unlock(&q->mutex);
-  return 1;
 }
 
-// set done flag
-void set_done(Queue *q) {
-  pthread_mutex_lock(&q->mutex);
-  q->done_producing = 1;
-  pthread_cond_broadcast(&q->cond_not_empty); // wake up all consumers
-  pthread_mutex_unlock(&q->mutex);
-}
+// Consumer calls this
+int popTask(TaskQueue* q, Task* t)
+{
+    pthread_mutex_lock(&q->mutex);
 
-// called from inside critical section to verify output
-void print_board(int board[]) {
-  printf("[");
-  for (int i = 0; i < SIZE; i++) {
-    printf("%d ", board[i]);
-  }
-  printf("]\n");
-}
-
-// check if placing a queen at (row, col) is safe against previous queens
-int is_safe(int board[], int row, int col) {
-  for (int i = 0; i < row; i++) {
-    int other_col = board[i];
-
-    // 1. check vertical (same column)
-    if (other_col == col) {
-      return 0;
+    // Wait while queue is empty, unless producer is done
+    while (q->count == 0 && !q->productionComplete)
+    {
+        pthread_cond_wait(&q->condNotEmpty, &q->mutex);
     }
 
-    // 2. check diagonals
-    // the vertical distance (row - i) must not equal the horizontal distance
-    if (abs(other_col - col) == abs(i - row)) {
-      return 0;
+    // If empty and done, return 0
+    if (q->count == 0 && q->productionComplete)
+    {
+        pthread_mutex_unlock(&q->mutex);
+        return 0;
     }
-  }
-  return 1;
+
+    *t = q->tasks[q->readIndex];
+    q->readIndex = (q->readIndex + 1) % QUEUE_SIZE;
+    q->count--;
+
+    // Signal producer that there is space
+    pthread_cond_signal(&q->condNotFull);
+    pthread_mutex_unlock(&q->mutex);
+    return 1;
 }
 
-void solve(int board[], int row) {
-  // base case: all queens placed
-  if (row == SIZE) {
-    pthread_mutex_lock(&mutex_sol);
-    total_solutions++;
-    //print_board(board); // uncomment AND RECOMPILE to see solutions (slows down timing!!)
-    pthread_mutex_unlock(&mutex_sol);
-    return;
-  }
+// Signal workers that no new tasks are coming
+void setDone(TaskQueue* q)
+{
+    pthread_mutex_lock(&q->mutex);
+    q->productionComplete = true;
+    pthread_cond_broadcast(&q->condNotEmpty); // Wake everyone up to exit
+    pthread_mutex_unlock(&q->mutex);
+}
 
-  // recursive step: try all columns in current row
-  for (int col = 0; col < SIZE; col++) {
-    if (is_safe(board, row, col)) {
-      board[row] = col; // place queen
-      solve(board, row + 1);
+// Solving algorithms, Recursion + Backtracking (consumer logic)
+void solve(const int r,
+           bool col[], bool posDiag[], bool negDiag[],
+           int* localCount)
+{
+    // Base Case: all queens placed
+    if (r == N)
+    {
+        (*localCount)++;
+        return;
     }
-  }
+
+    // Try all columns
+    for (int c = 0; c < N; c++)
+    {
+        // O(1) lookup instead of scanning loop
+        if (!col[c] && !posDiag[r + c] && !negDiag[r - c + N])
+        {
+            // Place Queen (Update lookups)
+            col[c] = true;
+            posDiag[r + c] = true;
+            negDiag[r - c + N] = true; // Offset by N to prevent negative index
+
+            // Recurse
+            solve(r + 1, col, posDiag, negDiag, localCount);
+
+            // Backtrack (Undo Lookups)
+            col[c] = false;
+            posDiag[r + c] = false;
+            negDiag[r - c + N] = false;
+        }
+    }
 }
 
-// worker: consumes tasks from the queue
-void *worker(void *arg) {
-  Task t;
-  while (pop_task(&task_queue, &t)) {
-    solve(t.board, t.start_row);
-  }
-  return NULL;
-}
+// Worker thread
+void* worker(void* arg)
+{
+    int* solutionsFound = malloc(sizeof(int));
+    *solutionsFound = 0;
 
-// producer: generates partial tasks up to a certain depth
-void generate_tasks(int board[], int row) {
-  // split depth: how deep the producer goes before handing off
-  // depth 2 = ~40-50 tasks for 8 queens
-  const int SPLIT_DEPTH = 2;
-
-  if (row == SPLIT_DEPTH) {
     Task t;
-    for (int i = 0; i < SIZE; i++)
-      t.board[i] = board[i];
-    t.start_row = row;
-    push_task(&task_queue, t);
-    return;
-  }
 
-  for (int col = 0; col < SIZE; col++) {
-    if (is_safe(board, row, col)) {
-      board[row] = col;
-      generate_tasks(board, row + 1);
+    // Consuming Loop
+    while (popTask(&taskQueue, &t))
+    {
+        solve(t.startRow, t.col, t.posDiag, t.negDiag, solutionsFound);
     }
-  }
+
+    return solutionsFound;
 }
 
-int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    printf("Usage: %s <number_of_threads>\n", argv[0]);
-    return 1;
-  }
-
-  int num_threads = atoi(argv[1]);
-  if (num_threads <= 0) {
-    printf("Error: Number of threads must be > 0\n");
-    return 1;
-  }
-
-  pthread_t *threads = malloc(num_threads * sizeof(pthread_t));
-  if (threads == NULL) {
-    perror("Malloc failed");
-    return 1;
-  }
-
-  // mutexes
-  if (pthread_mutex_init(&mutex_sol, NULL) != 0) {
-    perror("Mutex init failed");
-    return 1;
-  }
-  init_queue(&task_queue);
-
-  // start timing
-  struct timeval start, end;
-  gettimeofday(&start, NULL);
-
-  // create threads (consumers)
-  for (int i = 0; i < num_threads; i++) {
-    if (pthread_create(&threads[i], NULL, worker, NULL) != 0) {
-      perror("Thread creation failed");
-      exit(1);
+// Producer Logic (recursive generator)
+void generateTasks(const int r, bool col[], bool posDiag[], bool negDiag[])
+{
+    // If we reached the split depth, send to queue
+    if (r == SPLIT_DEPTH)
+    {
+        Task t;
+        t.startRow = r;
+        memcpy(t.col, col, sizeof(bool) * N);
+        memcpy(t.posDiag, posDiag, sizeof(bool) * 2 * N);
+        memcpy(t.negDiag, negDiag, sizeof(bool) * 2 * N);
+        pushTask(&taskQueue, t);
+        return;
     }
-  }
 
-  // producer runs in main thread (main thread IS the producer)
-  int initial_board[SIZE];
-  generate_tasks(initial_board, 0);
+    for (int c = 0; c < N; c++)
+    {
+        if (!col[c] && !posDiag[r + c] && !negDiag[r - c + N])
+        {
+            col[c] = true;
+            posDiag[r + c] = true;
+            negDiag[r - c + N] = true;
 
-  // signal done
-  set_done(&task_queue);
+            generateTasks(r + 1, col, posDiag, negDiag);
 
-  // join threads
-  for (int i = 0; i < num_threads; i++) {
-    pthread_join(threads[i], NULL);
-  }
+            col[c] = false;
+            posDiag[r + c] = false;
+            negDiag[r - c + N] = false;
+        }
+    }
+}
 
-  // stop timing
-  gettimeofday(&end, NULL);
+int main()
+{
+    pthread_t threads[NUM_THREADS];
 
-  // calculate elapsed time
-  double elapsed =
-      (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
+    initQueue(&taskQueue);
 
-  printf("Number of threads: %d\n", num_threads);
-  printf("Total solutions found: %d\n", total_solutions);
-  printf("Execution time: %.6f seconds\n", elapsed);
+    // Initial board arrays (empty)
+    bool col[N] = {false};
+    bool posDiag[2 * N] = {false};
+    bool negDiag[2 * N] = {false};
 
-  // cleanup
-  pthread_mutex_destroy(&mutex_sol);
-  // destroy queue mutex/conds
-  pthread_mutex_destroy(&task_queue.mutex);
-  pthread_cond_destroy(&task_queue.cond_not_empty);
-  pthread_cond_destroy(&task_queue.cond_not_full);
-  free(threads);
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+    printf("Starting 8-Queens Pthreads (N=%d)...\n", N);
 
-  return 0;
+    // Launch workers
+    for (int i = 0; i < NUM_THREADS; i++)
+    {
+        pthread_create(&threads[i], NULL, worker, NULL);
+    }
+
+    // Producer generates partial boards
+    generateTasks(0, col, posDiag, negDiag);
+
+    // Signal completion
+    setDone(&taskQueue);
+
+    // Join and sum
+    // 1. Wait: pthread_join blocks until the specific thread terminates.
+    // 2. Capture: We get the return value as a void* (raw memory address).
+    // 3. Cast & Dereference: Convert void* to int*, then read the value.
+    // 4. Sum: Add the thread's local count to the global total.
+    // 5. Cleanup: Free the heap memory allocated by the worker.
+    int totalSolutions = 0;
+    for (int i = 0; i < NUM_THREADS; i++)
+    {
+        void* ret;
+        pthread_join(threads[i], &ret);
+        totalSolutions += *(int*)ret;
+        free(ret);
+    }
+
+    gettimeofday(&end, NULL);
+    const double time = (double)(end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec) / 1e6;
+
+    printf("Total Solutions: %d\n", totalSolutions);
+    printf("Time: %f seconds\n", time);
+
+    // Cleanup
+    pthread_mutex_destroy(&taskQueue.mutex);
+    pthread_cond_destroy(&taskQueue.condNotEmpty);
+    pthread_cond_destroy(&taskQueue.condNotFull);
+
+    return 0;
 }

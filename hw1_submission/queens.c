@@ -199,8 +199,12 @@ int getOptimalDepth(int n) {
     return 4;                   // For N=15+, creates ~3,000+ tasks.
 }
 
+// How to compile: gcc -pthread queens.c -o queens
+// How to compile with N=8: gcc -pthread queens.c -o queens -DN=8
+// How to run: ./queens <number of threads>
 int main(int argc, char* argv[])
 {
+    // Get number of threads from command line
     if (argc != 2)
     {
         printf("Usage: %s <number of threads>\n", argv[0]);

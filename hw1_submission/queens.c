@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #ifndef N
-#define N 12  // Number of queens (Default value if none is provided)
+#define N 8  // Number of queens (Default value if none is provided)
 #endif    
 
 #define QUEUE_SIZE 256

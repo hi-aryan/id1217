@@ -1,0 +1,7 @@
+# Binaries
+queens
+*.o
+*.dSYM
+
+# System
+.DS_Store

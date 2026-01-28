@@ -5,3 +5,5 @@ queens
 
 # System
 .DS_Store
+
+benchmark.py

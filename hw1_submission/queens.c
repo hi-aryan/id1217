@@ -6,10 +6,11 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#define N 8             // Number of queens
-#define NUM_THREADS 8
+#ifndef N
+#define N 12  // Number of queens (Default value if none is provided)
+#endif    
+
 #define QUEUE_SIZE 256
-#define SPLIT_DEPTH 3   // Producer goes to this depth
 
 // DATA STRUCTURES
 
@@ -159,10 +160,10 @@ void* worker(void* arg)
 }
 
 // Producer Logic (recursive generator)
-void generateTasks(const int r, bool col[], bool posDiag[], bool negDiag[])
+void generateTasks(const int r, bool col[], bool posDiag[], bool negDiag[], int depth)
 {
     // If we reached the split depth, send to queue
-    if (r == SPLIT_DEPTH)
+    if (r == depth)
     {
         Task t;
         t.startRow = r;
@@ -181,7 +182,7 @@ void generateTasks(const int r, bool col[], bool posDiag[], bool negDiag[])
             posDiag[r + c] = true;
             negDiag[r - c + N] = true;
 
-            generateTasks(r + 1, col, posDiag, negDiag);
+            generateTasks(r + 1, col, posDiag, negDiag, depth);
 
             col[c] = false;
             posDiag[r + c] = false;
@@ -190,8 +191,29 @@ void generateTasks(const int r, bool col[], bool posDiag[], bool negDiag[])
     }
 }
 
-int main()
+// Depth calculation helper function
+int getOptimalDepth(int n) {
+    if (n < 10) return 1;       // For N=8, creates ~8 tasks.
+    if (n < 12) return 2;       // For N=10, creates ~70 tasks.
+    if (n < 15) return 3;       // For N=12-14, creates ~800 to ~2,000 tasks.
+    return 4;                   // For N=15+, creates ~3,000+ tasks.
+}
+
+int main(int argc, char* argv[])
 {
+    if (argc != 2)
+    {
+        printf("Usage: %s <number of threads>\n", argv[0]);
+        return 1;
+    }
+
+    int NUM_THREADS = atoi(argv[1]);
+    if (NUM_THREADS <= 0)
+    {
+        printf("Number of threads must be greater than 0\n");
+        return 1;
+    }
+
     pthread_t threads[NUM_THREADS];
 
     initQueue(&taskQueue);
@@ -201,10 +223,13 @@ int main()
     bool posDiag[2 * N] = {false};
     bool negDiag[2 * N] = {false};
 
+    int optimalDepth = getOptimalDepth(N);
+
+    printf("Solving N=%d with depth %d and threads %d\n", N, optimalDepth, NUM_THREADS);
+
     struct timeval start, end;
     gettimeofday(&start, NULL);
-    printf("Starting 8-Queens Pthreads (N=%d)...\n", N);
-
+    
     // Launch workers
     for (int i = 0; i < NUM_THREADS; i++)
     {
@@ -212,7 +237,7 @@ int main()
     }
 
     // Producer generates partial boards
-    generateTasks(0, col, posDiag, negDiag);
+    generateTasks(0, col, posDiag, negDiag, optimalDepth);
 
     // Signal completion
     setDone(&taskQueue);

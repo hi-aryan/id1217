@@ -19,7 +19,7 @@
 #include <string.h>
 
 #ifndef N
-#define N 8 // Board size / Number of queens
+#define N 12 // Board size / Number of queens
 #endif
 
 // Global solution counter
@@ -90,6 +90,7 @@ void generateTasks(const int r, bool col[], bool posDiag[], bool negDiag[],
     {
       int localCount = 0;
       solve(r, taskCol, taskPosDiag, taskNegDiag, &localCount);
+      // implicitly puts this inside a queue that the other threads can pick up
 
 // Atomically add to global counter
 #pragma omp atomic
@@ -148,6 +149,7 @@ double runOnce(int numThreads) {
     {
       generateTasks(0, col, posDiag, negDiag, depth);
     }
+    // other threads spin here 
     // Implicit barrier and taskwait at end of parallel region
   }
 

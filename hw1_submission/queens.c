@@ -89,6 +89,7 @@ int popTask(TaskQueue* q, Task* t)
         return 0;
     }
 
+    // copies task from queue to local variable t
     *t = q->tasks[q->readIndex];
     q->readIndex = (q->readIndex + 1) % QUEUE_SIZE;
     q->count--;

@@ -6,16 +6,16 @@
 #include <time.h>
 #include <unistd.h>
 
-// Shared variables
+// shared variables
 int men_inside = 0;
 int women_inside = 0;
 
-// Named semaphores for MacOS (pointers, not structs)
+// named semaphores for MacOS (pointers, not structs)
 sem_t *mutex;
 sem_t *bathroom;
 sem_t *turnstile;
 
-// Semaphore names (must be unique)
+// semaphore names (unique!!)
 const char SEM_MUTEX[] = "/bathroom_mutex";
 const char SEM_BATHROOM[] = "/bathroom_access";
 const char SEM_TURNSTILE[] = "/bathroom_turnstile";
@@ -81,7 +81,7 @@ void *man_thread(void *arg) {
     sem_wait(turnstile);
     sem_wait(mutex);
 
-    int first_man = (men_inside == 0);
+    int first_man = (men_inside == 0); // C returns 0 = false, 1 = true
     men_inside++; // Increment BEFORE releasing mutex
 
     sem_post(mutex); // Release mutex BEFORE waiting on bathroom!
@@ -128,9 +128,9 @@ int main(int argc, char *argv[]) {
   sem_unlink(SEM_TURNSTILE);
 
   // named semaphores for MacOS
-  mutex = sem_open(SEM_MUTEX, O_CREAT, 0644, 1);
-  bathroom = sem_open(SEM_BATHROOM, O_CREAT, 0644, 1);
-  turnstile = sem_open(SEM_TURNSTILE, O_CREAT, 0644, 1);
+  mutex = sem_open(SEM_MUTEX, O_CREAT, 0644, 1); // protects men_inside and women_inside
+  bathroom = sem_open(SEM_BATHROOM, O_CREAT, 0644, 1); // gender exclusion
+  turnstile = sem_open(SEM_TURNSTILE, O_CREAT, 0644, 1); // fairness
 
   // check for errors
   if (mutex == SEM_FAILED || bathroom == SEM_FAILED ||

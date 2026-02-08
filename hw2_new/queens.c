@@ -150,7 +150,9 @@ double runOnce(int numThreads) {
       generateTasks(0, col, posDiag, negDiag, depth);
     }
     // other threads spin here 
-    // Implicit barrier and taskwait at end of parallel region
+    // Implicit barrier and taskwai
+    // 
+    // t at end of parallel region
   }
 
   double endTime = omp_get_wtime();

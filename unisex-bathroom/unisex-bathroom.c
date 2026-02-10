@@ -11,12 +11,14 @@ int men_inside = 0;
 int women_inside = 0;
 
 // named semaphores for MacOS (pointers, not structs)
-sem_t *mutex;
+sem_t *man_mutex;
+sem_t *woman_mutex;
 sem_t *bathroom;
 sem_t *turnstile;
 
 // semaphore names (unique!!)
-const char SEM_MUTEX[] = "/bathroom_mutex";
+const char SEM_MAN_MUTEX[] = "/bathroom_man_mutex";
+const char SEM_WOMAN_MUTEX[] = "/bathroom_woman_mutex";
 const char SEM_BATHROOM[] = "/bathroom_access";
 const char SEM_TURNSTILE[] = "/bathroom_turnstile";
 
@@ -36,12 +38,12 @@ void *woman_thread(void *arg) {
 
     // ENTRY PROTOCOL (deadlock-free)
     sem_wait(turnstile);
-    sem_wait(mutex);
+    sem_wait(woman_mutex);
 
     int first_woman = (women_inside == 0);
     women_inside++; // Increment BEFORE releasing mutex
 
-    sem_post(mutex); // Release mutex BEFORE waiting on bathroom!
+    sem_post(woman_mutex); // Release mutex BEFORE waiting on bathroom!
 
     if (first_woman) {
       sem_wait(bathroom); // Safe: not holding mutex
@@ -55,14 +57,14 @@ void *woman_thread(void *arg) {
     printf("  Woman %d LEAVING bathroom\n", id);
 
     // EXIT PROTOCOL
-    sem_wait(mutex);
+    sem_wait(woman_mutex);
     women_inside--;
 
     if (women_inside == 0) {
       sem_post(bathroom);
     }
 
-    sem_post(mutex);
+    sem_post(woman_mutex);
   }
 
   return NULL;
@@ -79,12 +81,12 @@ void *man_thread(void *arg) {
 
     // ENTRY PROTOCOL (deadlock-free)
     sem_wait(turnstile);
-    sem_wait(mutex);
+    sem_wait(man_mutex);
 
     int first_man = (men_inside == 0); // C returns 0 = false, 1 = true
     men_inside++; // Increment BEFORE releasing mutex
 
-    sem_post(mutex); // Release mutex BEFORE waiting on bathroom!
+    sem_post(man_mutex); // Release mutex BEFORE waiting on bathroom!
 
     if (first_man) {
       sem_wait(bathroom); // Safe: not holding mutex
@@ -98,14 +100,14 @@ void *man_thread(void *arg) {
     printf("  Man %d LEAVING bathroom\n", id);
 
     // EXIT PROTOCOL
-    sem_wait(mutex);
+    sem_wait(man_mutex);
     men_inside--;
 
     if (men_inside == 0) {
       sem_post(bathroom);
     }
 
-    sem_post(mutex);
+    sem_post(man_mutex);
   }
 
   return NULL;
@@ -123,17 +125,20 @@ int main(int argc, char *argv[]) {
   }
 
   // unlink any existing semaphores first
-  sem_unlink(SEM_MUTEX);
+  sem_unlink(SEM_MAN_MUTEX);
+  sem_unlink(SEM_WOMAN_MUTEX);
   sem_unlink(SEM_BATHROOM);
   sem_unlink(SEM_TURNSTILE);
 
   // named semaphores for MacOS
-  mutex = sem_open(SEM_MUTEX, O_CREAT, 0644, 1); // protects men_inside and women_inside
+  man_mutex = sem_open(SEM_MAN_MUTEX, O_CREAT, 0644, 1); // protects men_inside
+  woman_mutex = sem_open(SEM_WOMAN_MUTEX, O_CREAT, 0644, 1); // protects women_inside
   bathroom = sem_open(SEM_BATHROOM, O_CREAT, 0644, 1); // gender exclusion
   turnstile = sem_open(SEM_TURNSTILE, O_CREAT, 0644, 1); // fairness
 
   // check for errors
-  if (mutex == SEM_FAILED || bathroom == SEM_FAILED ||
+  if (man_mutex == SEM_FAILED || woman_mutex == SEM_FAILED || bathroom == SEM_FAILED ||
+
       turnstile == SEM_FAILED) {
     perror("sem_open failure");
     exit(1);
@@ -166,10 +171,12 @@ int main(int argc, char *argv[]) {
   }
 
   // cleanup named semaphores
-  sem_close(mutex);
+  sem_close(man_mutex);
+  sem_close(woman_mutex);
   sem_close(bathroom);
   sem_close(turnstile);
-  sem_unlink(SEM_MUTEX);
+  sem_unlink(SEM_MAN_MUTEX);
+  sem_unlink(SEM_WOMAN_MUTEX);
   sem_unlink(SEM_BATHROOM);
   sem_unlink(SEM_TURNSTILE);
 

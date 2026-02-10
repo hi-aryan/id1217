@@ -1,540 +1,646 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Unisex Bathroom — Semaphore Visualizer</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unisex Bathroom — Semaphore Visualizer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  body {
-    font-family: 'Inter', sans-serif;
-    background: #0f0f1a;
-    color: #e0e0f0;
-    min-height: 100vh;
-    padding: 24px;
-  }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #09090b;
+            color: #fafafa;
+            min-height: 100vh;
+            padding: 24px;
+        }
 
-  h1 {
-    text-align: center;
-    font-size: 1.4rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-    background: linear-gradient(135deg, #60a5fa, #a78bfa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+        h1 {
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
 
-  .layout {
-    max-width: 1000px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
-  }
+        .layout {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
 
-  /* --- Panels --- */
-  .panel {
-    background: #1a1a2e;
-    border-radius: 12px;
-    padding: 16px;
-    border: 1px solid #2a2a4a;
-  }
-  .panel h2 {
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #888;
-    margin-bottom: 12px;
-  }
+        /* Shared card style */
+        .panel,
+        .bathroom,
+        .sem-card,
+        .log-area {
+            background: #0a0a0c;
+            border-radius: 12px;
+            border: 1px solid #27272a;
+            padding: 16px;
+        }
 
-  /* --- People --- */
-  .people { display: flex; flex-wrap: wrap; gap: 8px; min-height: 48px; }
-  .person {
-    width: 42px; height: 42px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700;
-    font-size: 0.75rem;
-    transition: all 0.3s ease;
-  }
-  .person.man {
-    background: #1e3a5f;
-    border: 2px solid #3b82f6;
-    color: #60a5fa;
-  }
-  .person.woman {
-    background: #4a1942;
-    border: 2px solid #c026d3;
-    color: #e879f9;
-  }
-  .person.waiting { opacity: 0.4; }
-  .person.entering { animation: pulse 0.5s ease; }
-  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+        .panel h2,
+        .bathroom h2,
+        .log-area h2 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #71717a;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
 
-  /* --- Bathroom area --- */
-  .bathroom-area {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    gap: 16px;
-    align-items: start;
-  }
+        /* People */
+        .people {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 48px;
+        }
 
-  .bathroom {
-    background: #1a1a2e;
-    border-radius: 16px;
-    padding: 20px;
-    border: 2px solid #2a2a4a;
-    text-align: center;
-    min-height: 140px;
-    transition: border-color 0.4s;
-  }
-  .bathroom.men-inside { border-color: #3b82f6; box-shadow: 0 0 20px #3b82f622; }
-  .bathroom.women-inside { border-color: #c026d3; box-shadow: 0 0 20px #c026d322; }
+        .person {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.75rem;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
 
-  .bathroom h2 { margin-bottom: 10px; }
-  .bathroom .people { justify-content: center; }
-  .bathroom .counter {
-    margin-top: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.8rem;
-    color: #888;
-  }
+        .person.man {
+            border: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
 
-  /* --- Semaphores --- */
-  .sems {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-  }
+        .person.woman {
+            border: 2px solid #ec4899;
+            color: #ec4899;
+        }
 
-  .sem-card {
-    background: #1a1a2e;
-    border-radius: 12px;
-    padding: 14px;
-    border: 1px solid #2a2a4a;
-    text-align: center;
-  }
-  .sem-card .name {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #a78bfa;
-  }
-  .sem-card .value {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 2rem;
-    font-weight: 700;
-    margin: 6px 0;
-    transition: color 0.3s;
-  }
-  .sem-card .value.locked { color: #ef4444; }
-  .sem-card .value.open { color: #22c55e; }
-  .sem-card .desc {
-    font-size: 0.7rem;
-    color: #666;
-    line-height: 1.3;
-  }
+        .person.waiting {
+            opacity: 0.35;
+        }
 
-  /* --- Log --- */
-  .log-area {
-    grid-column: 1 / -1;
-    background: #12121f;
-    border-radius: 12px;
-    border: 1px solid #2a2a4a;
-    padding: 14px;
-    max-height: 240px;
-    overflow-y: auto;
-  }
-  .log-area h2 { font-size: 0.8rem; margin-bottom: 8px; color: #888; }
-  .log-entry {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    padding: 3px 0;
-    border-bottom: 1px solid #1a1a2e;
-    line-height: 1.5;
-  }
-  .log-entry .step-num { color: #555; margin-right: 6px; }
-  .log-entry .sem-name { color: #a78bfa; font-weight: 600; }
-  .log-entry .action-wait { color: #ef4444; }
-  .log-entry .action-post { color: #22c55e; }
-  .log-entry .person-label { font-weight: 600; }
-  .log-entry .man-label { color: #60a5fa; }
-  .log-entry .woman-label { color: #e879f9; }
-  .log-entry .info { color: #888; }
+        .person.entering {
+            animation: pulse 0.5s ease;
+        }
 
-  /* --- Controls --- */
-  .controls {
-    grid-column: 1 / -1;
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  button {
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 0.85rem;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-play { background: #22c55e; color: #000; }
-  .btn-play:hover { background: #16a34a; }
-  .btn-step { background: #3b82f6; color: #fff; }
-  .btn-step:hover { background: #2563eb; }
-  .btn-reset { background: #333; color: #ccc; }
-  .btn-reset:hover { background: #444; }
+        @keyframes pulse {
 
-  .speed-control {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 0.8rem; color: #888;
-  }
-  .speed-control input { width: 80px; }
-</style>
+            0%,
+            100% {
+                transform: scale(1)
+            }
+
+            50% {
+                transform: scale(1.2)
+            }
+        }
+
+        /* Bathroom */
+        .bathroom-area {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+
+        .bathroom {
+            padding: 20px;
+            text-align: center;
+            min-height: 140px;
+            transition: border-color 0.4s, box-shadow 0.4s;
+        }
+
+        .bathroom.men-inside {
+            border-color: #3b82f6;
+            box-shadow: 0 0 24px #3b82f615;
+        }
+
+        .bathroom.women-inside {
+            border-color: #ec4899;
+            box-shadow: 0 0 24px #ec489915;
+        }
+
+        .bathroom .people {
+            justify-content: center;
+        }
+
+        .bathroom .counter {
+            margin-top: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #71717a;
+        }
+
+        /* Semaphores */
+        .sems {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .sem-card {
+            padding: 14px;
+            text-align: center;
+        }
+
+        .sem-card .name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #a1a1aa;
+        }
+
+        .sem-card .value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 6px 0;
+            transition: color 0.3s;
+        }
+
+        .sem-card .value.locked {
+            color: #ef4444;
+        }
+
+        .sem-card .value.open {
+            color: #22c55e;
+        }
+
+        .sem-card .desc {
+            font-size: 0.7rem;
+            color: #71717a;
+            line-height: 1.3;
+        }
+
+        /* Log */
+        .log-area {
+            grid-column: 1 / -1;
+            padding: 14px;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            padding: 3px 0;
+            border-bottom: 1px solid #18181b;
+            line-height: 1.5;
+        }
+
+        .log-entry .step-num {
+            color: #52525b;
+            margin-right: 6px;
+        }
+
+        .log-entry .sem-name {
+            color: #a1a1aa;
+            font-weight: 600;
+        }
+
+        .log-entry .action-wait {
+            color: #ef4444;
+        }
+
+        .log-entry .action-post {
+            color: #22c55e;
+        }
+
+        .log-entry .person-label {
+            font-weight: 600;
+        }
+
+        .log-entry .man-label {
+            color: #3b82f6;
+        }
+
+        .log-entry .woman-label {
+            color: #ec4899;
+        }
+
+        .log-entry .info {
+            color: #71717a;
+        }
+
+        /* Controls */
+        .controls {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 0.85rem;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-play {
+            background: #fafafa;
+            color: #09090b;
+        }
+
+        .btn-play:hover {
+            opacity: 0.85;
+        }
+
+        .btn-step {
+            background: #27272a;
+            color: #fafafa;
+            border: 1px solid #3f3f46;
+        }
+
+        .btn-step:hover {
+            background: #3f3f46;
+        }
+
+        .btn-reset {
+            background: transparent;
+            color: #a1a1aa;
+            border: 1px solid #27272a;
+        }
+
+        .btn-reset:hover {
+            background: #18181b;
+            color: #fafafa;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: #71717a;
+        }
+
+        .speed-control input {
+            width: 80px;
+            accent-color: #a1a1aa;
+        }
+    </style>
 </head>
+
 <body>
 
-<h1>🚻 Unisex Bathroom — Semaphore Visualizer</h1>
+    <h1>🚻 Unisex Bathroom — Semaphore Visualizer</h1>
 
-<div class="layout">
+    <div class="layout">
 
-  <!-- Controls -->
-  <div class="controls">
-    <button class="btn-play" id="playBtn" onclick="togglePlay()">▶ Play</button>
-    <button class="btn-step" onclick="step()">→ Step</button>
-    <button class="btn-reset" onclick="reset()">↺ Reset</button>
-    <div class="speed-control">
-      <label>Speed:</label>
-      <input type="range" id="speedSlider" min="100" max="2000" value="700" step="100">
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn-play" id="playBtn" onclick="togglePlay()">▶ Play</button>
+            <button class="btn-step" onclick="step()">→ Step</button>
+            <button class="btn-reset" onclick="reset()">↺ Reset</button>
+            <div class="speed-control">
+                <label>Speed:</label>
+                <input type="range" id="speedSlider" min="100" max="2000" value="700" step="100">
+            </div>
+        </div>
+
+        <!-- Semaphores -->
+        <div class="sems">
+            <div class="sem-card">
+                <div class="name">mutex</div>
+                <div class="value open" id="sem-mutex">1</div>
+                <div class="desc">Protects counters<br>(men_inside, women_inside)</div>
+            </div>
+            <div class="sem-card">
+                <div class="name">bathroom</div>
+                <div class="value open" id="sem-bathroom">1</div>
+                <div class="desc">Gender exclusion lock<br>1st in grabs, last out releases</div>
+            </div>
+            <div class="sem-card">
+                <div class="name">turnstile</div>
+                <div class="value open" id="sem-turnstile">1</div>
+                <div class="desc">Fairness gate<br>Prevents starvation</div>
+            </div>
+        </div>
+
+        <!-- Bathroom area -->
+        <div class="bathroom-area">
+            <div class="panel">
+                <h2>👨 Men Waiting</h2>
+                <div class="people" id="men-waiting"></div>
+            </div>
+
+            <div class="bathroom" id="bathroom">
+                <h2>🚻 Bathroom</h2>
+                <div class="people" id="inside"></div>
+                <div class="counter" id="counter-display">men_inside = 0 &nbsp;|&nbsp; women_inside = 0</div>
+            </div>
+
+            <div class="panel">
+                <h2>👩 Women Waiting</h2>
+                <div class="people" id="women-waiting"></div>
+            </div>
+        </div>
+
+        <!-- Log -->
+        <div class="log-area">
+            <h2>📋 Event Log (what each thread does)</h2>
+            <div id="log"></div>
+        </div>
+
     </div>
-  </div>
 
-  <!-- Semaphores -->
-  <div class="sems">
-    <div class="sem-card">
-      <div class="name">mutex</div>
-      <div class="value open" id="sem-mutex">1</div>
-      <div class="desc">Protects counters<br>(men_inside, women_inside)</div>
-    </div>
-    <div class="sem-card">
-      <div class="name">bathroom</div>
-      <div class="value open" id="sem-bathroom">1</div>
-      <div class="desc">Gender exclusion lock<br>1st in grabs, last out releases</div>
-    </div>
-    <div class="sem-card">
-      <div class="name">turnstile</div>
-      <div class="value open" id="sem-turnstile">1</div>
-      <div class="desc">Fairness gate<br>Prevents starvation</div>
-    </div>
-  </div>
+    <script>
+        // --- STATE ---
+        let sems = { mutex: 1, bathroom: 1, turnstile: 1 };
+        let men_inside = 0, women_inside = 0;
+        let stepCount = 0;
+        let playing = false;
+        let playTimer = null;
 
-  <!-- Bathroom area -->
-  <div class="bathroom-area">
-    <div class="panel">
-      <h2>👨 Men Waiting</h2>
-      <div class="people" id="men-waiting"></div>
-    </div>
+        // People: { id, gender, state: 'waiting'|'inside'|'working' }
+        let people = [
+            { id: 1, gender: 'man', state: 'waiting' },
+            { id: 2, gender: 'man', state: 'waiting' },
+            { id: 3, gender: 'man', state: 'waiting' },
+            { id: 1, gender: 'woman', state: 'waiting' },
+            { id: 2, gender: 'woman', state: 'waiting' },
+            { id: 3, gender: 'woman', state: 'waiting' },
+        ];
 
-    <div class="bathroom" id="bathroom">
-      <h2>🚻 Bathroom</h2>
-      <div class="people" id="inside"></div>
-      <div class="counter" id="counter-display">men_inside = 0 &nbsp;|&nbsp; women_inside = 0</div>
-    </div>
+        // Event queue — scripted to show the interesting scenarios
+        let events = [];
+        let eventIdx = 0;
 
-    <div class="panel">
-      <h2>👩 Women Waiting</h2>
-      <div class="people" id="women-waiting"></div>
-    </div>
-  </div>
+        function label(p) {
+            return p.gender === 'man' ? `M${p.id}` : `W${p.id}`;
+        }
 
-  <!-- Log -->
-  <div class="log-area">
-    <h2>📋 Event Log (what each thread does)</h2>
-    <div id="log"></div>
-  </div>
+        function htmlLabel(p) {
+            const cls = p.gender === 'man' ? 'man-label' : 'woman-label';
+            return `<span class="person-label ${cls}">${p.gender === 'man' ? 'Man' : 'Woman'} ${p.id}</span>`;
+        }
 
-</div>
+        function buildEvents() {
+            events = [];
+            const m1 = people[0], m2 = people[1], m3 = people[2];
+            const w1 = people[3], w2 = people[4], w3 = people[5];
 
-<script>
-// --- STATE ---
-let sems = { mutex: 1, bathroom: 1, turnstile: 1 };
-let men_inside = 0, women_inside = 0;
-let stepCount = 0;
-let playing = false;
-let playTimer = null;
+            // === Scene 1: Man 1 enters empty bathroom ===
+            events.push({ type: 'narrate', text: '── Man 1 wants the bathroom (it\'s empty) ──' });
+            events.push({ person: m1, action: 'sem_wait', sem: 'turnstile', why: 'Enters fairness gate (one at a time)' });
+            events.push({ person: m1, action: 'sem_wait', sem: 'mutex', why: 'Locks counters to safely check men_inside' });
+            events.push({ person: m1, action: 'check', why: 'men_inside == 0 → first_man = TRUE' });
+            events.push({ person: m1, action: 'increment', counter: 'men', why: 'men_inside++ → 1' });
+            events.push({ person: m1, action: 'sem_post', sem: 'mutex', why: 'Done with counters, unlock' });
+            events.push({ person: m1, action: 'sem_wait', sem: 'bathroom', why: 'First man → grabs bathroom lock for men' });
+            events.push({ person: m1, action: 'sem_post', sem: 'turnstile', why: 'Releases gate for next person' });
+            events.push({ person: m1, action: 'enter', why: 'Man 1 enters bathroom ✅' });
 
-// People: { id, gender, state: 'waiting'|'inside'|'working' }
-let people = [
-  { id: 1, gender: 'man', state: 'waiting' },
-  { id: 2, gender: 'man', state: 'waiting' },
-  { id: 3, gender: 'man', state: 'waiting' },
-  { id: 1, gender: 'woman', state: 'waiting' },
-  { id: 2, gender: 'woman', state: 'waiting' },
-  { id: 3, gender: 'woman', state: 'waiting' },
-];
+            // === Scene 2: Man 2 enters (same gender, skips bathroom sem) ===
+            events.push({ type: 'narrate', text: '── Man 2 arrives (same gender → skips bathroom lock) ──' });
+            events.push({ person: m2, action: 'sem_wait', sem: 'turnstile', why: 'Enters fairness gate' });
+            events.push({ person: m2, action: 'sem_wait', sem: 'mutex', why: 'Locks counters' });
+            events.push({ person: m2, action: 'check', why: 'men_inside == 1 → first_man = FALSE' });
+            events.push({ person: m2, action: 'increment', counter: 'men', why: 'men_inside++ → 2' });
+            events.push({ person: m2, action: 'sem_post', sem: 'mutex', why: 'Unlock counters' });
+            events.push({ person: m2, action: 'skip_bathroom', why: 'NOT first man → skips sem_wait(bathroom)! Just walks in.' });
+            events.push({ person: m2, action: 'sem_post', sem: 'turnstile', why: 'Releases gate' });
+            events.push({ person: m2, action: 'enter', why: 'Man 2 enters bathroom ✅' });
 
-// Event queue — scripted to show the interesting scenarios
-let events = [];
-let eventIdx = 0;
+            // === Scene 3: Woman 1 tries to enter (blocked!) ===
+            events.push({ type: 'narrate', text: '── Woman 1 arrives (opposite gender → BLOCKED) ──' });
+            events.push({ person: w1, action: 'sem_wait', sem: 'turnstile', why: 'Enters fairness gate' });
+            events.push({ person: w1, action: 'sem_wait', sem: 'mutex', why: 'Locks counters' });
+            events.push({ person: w1, action: 'check', why: 'women_inside == 0 → first_woman = TRUE' });
+            events.push({ person: w1, action: 'increment', counter: 'women', why: 'women_inside++ → 1' });
+            events.push({ person: w1, action: 'sem_post', sem: 'mutex', why: 'Unlock counters' });
+            events.push({ person: w1, action: 'blocked', sem: 'bathroom', why: 'sem_wait(bathroom) → bathroom=0 → BLOCKED! ⏸️ Men are inside.' });
 
-function label(p) {
-  return p.gender === 'man' ? `M${p.id}` : `W${p.id}`;
-}
+            // === Scene 4: Man 2 leaves ===
+            events.push({ type: 'narrate', text: '── Man 2 finishes, leaves ──' });
+            events.push({ person: m2, action: 'sem_wait', sem: 'mutex', why: 'Lock counters for safe decrement' });
+            events.push({ person: m2, action: 'decrement', counter: 'men', why: 'men_inside-- → 1' });
+            events.push({ person: m2, action: 'check_exit', why: 'men_inside == 1 → NOT last, don\'t release bathroom' });
+            events.push({ person: m2, action: 'sem_post', sem: 'mutex', why: 'Unlock counters' });
+            events.push({ person: m2, action: 'leave', why: 'Man 2 leaves ✅' });
 
-function htmlLabel(p) {
-  const cls = p.gender === 'man' ? 'man-label' : 'woman-label';
-  return `<span class="person-label ${cls}">${p.gender === 'man' ? 'Man' : 'Woman'} ${p.id}</span>`;
-}
+            // === Scene 5: Man 1 leaves (last man → releases bathroom → woman unblocks!) ===
+            events.push({ type: 'narrate', text: '── Man 1 leaves (LAST man → releases bathroom lock!) ──' });
+            events.push({ person: m1, action: 'sem_wait', sem: 'mutex', why: 'Lock counters' });
+            events.push({ person: m1, action: 'decrement', counter: 'men', why: 'men_inside-- → 0' });
+            events.push({ person: m1, action: 'check_exit_release', why: 'men_inside == 0 → LAST man! Release bathroom.' });
+            events.push({ person: m1, action: 'sem_post', sem: 'bathroom', why: 'Last man out → sem_post(bathroom) → 0→1 → UNLOCKS for women!' });
+            events.push({ person: m1, action: 'sem_post', sem: 'mutex', why: 'Unlock counters' });
+            events.push({ person: m1, action: 'leave', why: 'Man 1 leaves ✅' });
 
-function buildEvents() {
-  events = [];
-  const m1 = people[0], m2 = people[1], m3 = people[2];
-  const w1 = people[3], w2 = people[4], w3 = people[5];
+            // === Scene 6: Woman 1 unblocks and enters ===
+            events.push({ type: 'narrate', text: '── Woman 1 UNBLOCKS and enters! ──' });
+            events.push({ person: w1, action: 'unblocked', sem: 'bathroom', why: 'bathroom went 0→1→0 — Woman 1 grabs it! ✅' });
+            events.push({ person: w1, action: 'sem_post', sem: 'turnstile', why: 'Releases gate (was holding it while blocked!)' });
+            events.push({ person: w1, action: 'enter', why: 'Woman 1 enters bathroom ✅' });
 
-  // === Scene 1: Man 1 enters empty bathroom ===
-  events.push({ type: 'narrate', text: '── Man 1 wants the bathroom (it\'s empty) ──' });
-  events.push({ person: m1, action: 'sem_wait', sem: 'turnstile', why: 'Enters fairness gate (one at a time)' });
-  events.push({ person: m1, action: 'sem_wait', sem: 'mutex', why: 'Locks counters to safely check men_inside' });
-  events.push({ person: m1, action: 'check', why: 'men_inside == 0 → first_man = TRUE' });
-  events.push({ person: m1, action: 'increment', counter: 'men', why: 'men_inside++ → 1' });
-  events.push({ person: m1, action: 'sem_post', sem: 'mutex', why: 'Done with counters, unlock' });
-  events.push({ person: m1, action: 'sem_wait', sem: 'bathroom', why: 'First man → grabs bathroom lock for men' });
-  events.push({ person: m1, action: 'sem_post', sem: 'turnstile', why: 'Releases gate for next person' });
-  events.push({ person: m1, action: 'enter', why: 'Man 1 enters bathroom ✅' });
+            // === Scene 7: Woman 2 enters (same gender) ===
+            events.push({ type: 'narrate', text: '── Woman 2 arrives (same gender → walks in) ──' });
+            events.push({ person: w2, action: 'sem_wait', sem: 'turnstile', why: 'Enters fairness gate' });
+            events.push({ person: w2, action: 'sem_wait', sem: 'mutex', why: 'Locks counters' });
+            events.push({ person: w2, action: 'check', why: 'women_inside == 1 → first_woman = FALSE' });
+            events.push({ person: w2, action: 'increment', counter: 'women', why: 'women_inside++ → 2' });
+            events.push({ person: w2, action: 'sem_post', sem: 'mutex', why: 'Unlock counters' });
+            events.push({ person: w2, action: 'skip_bathroom', why: 'NOT first woman → skips sem_wait(bathroom)' });
+            events.push({ person: w2, action: 'sem_post', sem: 'turnstile', why: 'Releases gate' });
+            events.push({ person: w2, action: 'enter', why: 'Woman 2 enters bathroom ✅' });
 
-  // === Scene 2: Man 2 enters (same gender, skips bathroom sem) ===
-  events.push({ type: 'narrate', text: '── Man 2 arrives (same gender → skips bathroom lock) ──' });
-  events.push({ person: m2, action: 'sem_wait', sem: 'turnstile', why: 'Enters fairness gate' });
-  events.push({ person: m2, action: 'sem_wait', sem: 'mutex', why: 'Locks counters' });
-  events.push({ person: m2, action: 'check', why: 'men_inside == 1 → first_man = FALSE' });
-  events.push({ person: m2, action: 'increment', counter: 'men', why: 'men_inside++ → 2' });
-  events.push({ person: m2, action: 'sem_post', sem: 'mutex', why: 'Unlock counters' });
-  events.push({ person: m2, action: 'skip_bathroom', why: 'NOT first man → skips sem_wait(bathroom)! Just walks in.' });
-  events.push({ person: m2, action: 'sem_post', sem: 'turnstile', why: 'Releases gate' });
-  events.push({ person: m2, action: 'enter', why: 'Man 2 enters bathroom ✅' });
+            // === Finale: Both women leave ===
+            events.push({ type: 'narrate', text: '── Both women leave, bathroom empty again ──' });
+            events.push({ person: w2, action: 'sem_wait', sem: 'mutex', why: 'Lock counters' });
+            events.push({ person: w2, action: 'decrement', counter: 'women', why: 'women_inside-- → 1' });
+            events.push({ person: w2, action: 'check_exit', why: 'women_inside == 1 → not last' });
+            events.push({ person: w2, action: 'sem_post', sem: 'mutex', why: 'Unlock' });
+            events.push({ person: w2, action: 'leave', why: 'Woman 2 leaves ✅' });
 
-  // === Scene 3: Woman 1 tries to enter (blocked!) ===
-  events.push({ type: 'narrate', text: '── Woman 1 arrives (opposite gender → BLOCKED) ──' });
-  events.push({ person: w1, action: 'sem_wait', sem: 'turnstile', why: 'Enters fairness gate' });
-  events.push({ person: w1, action: 'sem_wait', sem: 'mutex', why: 'Locks counters' });
-  events.push({ person: w1, action: 'check', why: 'women_inside == 0 → first_woman = TRUE' });
-  events.push({ person: w1, action: 'increment', counter: 'women', why: 'women_inside++ → 1' });
-  events.push({ person: w1, action: 'sem_post', sem: 'mutex', why: 'Unlock counters' });
-  events.push({ person: w1, action: 'blocked', sem: 'bathroom', why: 'sem_wait(bathroom) → bathroom=0 → BLOCKED! ⏸️ Men are inside.' });
+            events.push({ person: w1, action: 'sem_wait', sem: 'mutex', why: 'Lock counters' });
+            events.push({ person: w1, action: 'decrement', counter: 'women', why: 'women_inside-- → 0' });
+            events.push({ person: w1, action: 'check_exit_release', why: 'women_inside == 0 → LAST woman!' });
+            events.push({ person: w1, action: 'sem_post', sem: 'bathroom', why: 'Last woman → sem_post(bathroom) → 0→1 → free!' });
+            events.push({ person: w1, action: 'sem_post', sem: 'mutex', why: 'Unlock' });
+            events.push({ person: w1, action: 'leave', why: 'Woman 1 leaves ✅' });
 
-  // === Scene 4: Man 2 leaves ===
-  events.push({ type: 'narrate', text: '── Man 2 finishes, leaves ──' });
-  events.push({ person: m2, action: 'sem_wait', sem: 'mutex', why: 'Lock counters for safe decrement' });
-  events.push({ person: m2, action: 'decrement', counter: 'men', why: 'men_inside-- → 1' });
-  events.push({ person: m2, action: 'check_exit', why: 'men_inside == 1 → NOT last, don\'t release bathroom' });
-  events.push({ person: m2, action: 'sem_post', sem: 'mutex', why: 'Unlock counters' });
-  events.push({ person: m2, action: 'leave', why: 'Man 2 leaves ✅' });
+            events.push({ type: 'narrate', text: '── Done! Bathroom is empty, all semaphores = 1 ──' });
+        }
 
-  // === Scene 5: Man 1 leaves (last man → releases bathroom → woman unblocks!) ===
-  events.push({ type: 'narrate', text: '── Man 1 leaves (LAST man → releases bathroom lock!) ──' });
-  events.push({ person: m1, action: 'sem_wait', sem: 'mutex', why: 'Lock counters' });
-  events.push({ person: m1, action: 'decrement', counter: 'men', why: 'men_inside-- → 0' });
-  events.push({ person: m1, action: 'check_exit_release', why: 'men_inside == 0 → LAST man! Release bathroom.' });
-  events.push({ person: m1, action: 'sem_post', sem: 'bathroom', why: 'Last man out → sem_post(bathroom) → 0→1 → UNLOCKS for women!' });
-  events.push({ person: m1, action: 'sem_post', sem: 'mutex', why: 'Unlock counters' });
-  events.push({ person: m1, action: 'leave', why: 'Man 1 leaves ✅' });
+        // --- RENDER ---
+        function render() {
+            // Semaphores
+            for (const name of ['mutex', 'bathroom', 'turnstile']) {
+                const el = document.getElementById(`sem-${name}`);
+                el.textContent = sems[name];
+                el.className = 'value ' + (sems[name] === 0 ? 'locked' : 'open');
+            }
 
-  // === Scene 6: Woman 1 unblocks and enters ===
-  events.push({ type: 'narrate', text: '── Woman 1 UNBLOCKS and enters! ──' });
-  events.push({ person: w1, action: 'unblocked', sem: 'bathroom', why: 'bathroom went 0→1→0 — Woman 1 grabs it! ✅' });
-  events.push({ person: w1, action: 'sem_post', sem: 'turnstile', why: 'Releases gate (was holding it while blocked!)' });
-  events.push({ person: w1, action: 'enter', why: 'Woman 1 enters bathroom ✅' });
+            // Counters
+            document.getElementById('counter-display').innerHTML =
+                `men_inside = <b>${men_inside}</b> &nbsp;|&nbsp; women_inside = <b>${women_inside}</b>`;
 
-  // === Scene 7: Woman 2 enters (same gender) ===
-  events.push({ type: 'narrate', text: '── Woman 2 arrives (same gender → walks in) ──' });
-  events.push({ person: w2, action: 'sem_wait', sem: 'turnstile', why: 'Enters fairness gate' });
-  events.push({ person: w2, action: 'sem_wait', sem: 'mutex', why: 'Locks counters' });
-  events.push({ person: w2, action: 'check', why: 'women_inside == 1 → first_woman = FALSE' });
-  events.push({ person: w2, action: 'increment', counter: 'women', why: 'women_inside++ → 2' });
-  events.push({ person: w2, action: 'sem_post', sem: 'mutex', why: 'Unlock counters' });
-  events.push({ person: w2, action: 'skip_bathroom', why: 'NOT first woman → skips sem_wait(bathroom)' });
-  events.push({ person: w2, action: 'sem_post', sem: 'turnstile', why: 'Releases gate' });
-  events.push({ person: w2, action: 'enter', why: 'Woman 2 enters bathroom ✅' });
+            // Bathroom border
+            const bath = document.getElementById('bathroom');
+            bath.className = 'bathroom' +
+                (men_inside > 0 ? ' men-inside' : '') +
+                (women_inside > 0 ? ' women-inside' : '');
 
-  // === Finale: Both women leave ===
-  events.push({ type: 'narrate', text: '── Both women leave, bathroom empty again ──' });
-  events.push({ person: w2, action: 'sem_wait', sem: 'mutex', why: 'Lock counters' });
-  events.push({ person: w2, action: 'decrement', counter: 'women', why: 'women_inside-- → 1' });
-  events.push({ person: w2, action: 'check_exit', why: 'women_inside == 1 → not last' });
-  events.push({ person: w2, action: 'sem_post', sem: 'mutex', why: 'Unlock' });
-  events.push({ person: w2, action: 'leave', why: 'Woman 2 leaves ✅' });
+            // People
+            const menWaiting = people.filter(p => p.gender === 'man' && p.state === 'waiting');
+            const womenWaiting = people.filter(p => p.gender === 'woman' && p.state === 'waiting');
+            const insidePeople = people.filter(p => p.state === 'inside');
 
-  events.push({ person: w1, action: 'sem_wait', sem: 'mutex', why: 'Lock counters' });
-  events.push({ person: w1, action: 'decrement', counter: 'women', why: 'women_inside-- → 0' });
-  events.push({ person: w1, action: 'check_exit_release', why: 'women_inside == 0 → LAST woman!' });
-  events.push({ person: w1, action: 'sem_post', sem: 'bathroom', why: 'Last woman → sem_post(bathroom) → 0→1 → free!' });
-  events.push({ person: w1, action: 'sem_post', sem: 'mutex', why: 'Unlock' });
-  events.push({ person: w1, action: 'leave', why: 'Woman 1 leaves ✅' });
+            document.getElementById('men-waiting').innerHTML =
+                menWaiting.map(p => `<div class="person man waiting">${label(p)}</div>`).join('');
+            document.getElementById('women-waiting').innerHTML =
+                womenWaiting.map(p => `<div class="person woman waiting">${label(p)}</div>`).join('');
+            document.getElementById('inside').innerHTML =
+                insidePeople.map(p => `<div class="person ${p.gender} entering">${label(p)}</div>`).join('');
+        }
 
-  events.push({ type: 'narrate', text: '── Done! Bathroom is empty, all semaphores = 1 ──' });
-}
+        function addLog(html) {
+            stepCount++;
+            const log = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="step-num">${String(stepCount).padStart(2, '0')}</span> ${html}`;
+            log.prepend(entry);
+        }
 
-// --- RENDER ---
-function render() {
-  // Semaphores
-  for (const name of ['mutex', 'bathroom', 'turnstile']) {
-    const el = document.getElementById(`sem-${name}`);
-    el.textContent = sems[name];
-    el.className = 'value ' + (sems[name] === 0 ? 'locked' : 'open');
-  }
+        // --- PROCESS EVENT ---
+        function processEvent(ev) {
+            if (ev.type === 'narrate') {
+                addLog(`<span class="info">${ev.text}</span>`);
+                return;
+            }
 
-  // Counters
-  document.getElementById('counter-display').innerHTML =
-    `men_inside = <b>${men_inside}</b> &nbsp;|&nbsp; women_inside = <b>${women_inside}</b>`;
+            const p = ev.person;
 
-  // Bathroom border
-  const bath = document.getElementById('bathroom');
-  bath.className = 'bathroom' +
-    (men_inside > 0 ? ' men-inside' : '') +
-    (women_inside > 0 ? ' women-inside' : '');
+            switch (ev.action) {
+                case 'sem_wait':
+                    sems[ev.sem]--;
+                    addLog(`${htmlLabel(p)} → <span class="action-wait">sem_wait</span>(<span class="sem-name">${ev.sem}</span>) → ${sems[ev.sem]} — <span class="info">${ev.why}</span>`);
+                    break;
 
-  // People
-  const menWaiting = people.filter(p => p.gender === 'man' && p.state === 'waiting');
-  const womenWaiting = people.filter(p => p.gender === 'woman' && p.state === 'waiting');
-  const insidePeople = people.filter(p => p.state === 'inside');
+                case 'sem_post':
+                    sems[ev.sem]++;
+                    addLog(`${htmlLabel(p)} → <span class="action-post">sem_post</span>(<span class="sem-name">${ev.sem}</span>) → ${sems[ev.sem]} — <span class="info">${ev.why}</span>`);
+                    break;
 
-  document.getElementById('men-waiting').innerHTML =
-    menWaiting.map(p => `<div class="person man waiting">${label(p)}</div>`).join('');
-  document.getElementById('women-waiting').innerHTML =
-    womenWaiting.map(p => `<div class="person woman waiting">${label(p)}</div>`).join('');
-  document.getElementById('inside').innerHTML =
-    insidePeople.map(p => `<div class="person ${p.gender} entering">${label(p)}</div>`).join('');
-}
+                case 'blocked':
+                    addLog(`${htmlLabel(p)} → <span class="action-wait">sem_wait</span>(<span class="sem-name">${ev.sem}</span>) → <span class="action-wait">BLOCKED!</span> — <span class="info">${ev.why}</span>`);
+                    break;
 
-function addLog(html) {
-  stepCount++;
-  const log = document.getElementById('log');
-  const entry = document.createElement('div');
-  entry.className = 'log-entry';
-  entry.innerHTML = `<span class="step-num">${String(stepCount).padStart(2, '0')}</span> ${html}`;
-  log.prepend(entry);
-}
+                case 'unblocked':
+                    sems[ev.sem]--;
+                    addLog(`${htmlLabel(p)} → <span class="action-post">UNBLOCKED!</span> <span class="sem-name">${ev.sem}</span> → ${sems[ev.sem]} — <span class="info">${ev.why}</span>`);
+                    break;
 
-// --- PROCESS EVENT ---
-function processEvent(ev) {
-  if (ev.type === 'narrate') {
-    addLog(`<span class="info">${ev.text}</span>`);
-    return;
-  }
+                case 'check':
+                case 'check_exit':
+                case 'check_exit_release':
+                    addLog(`${htmlLabel(p)} → <span class="info">${ev.why}</span>`);
+                    break;
 
-  const p = ev.person;
+                case 'skip_bathroom':
+                    addLog(`${htmlLabel(p)} → <span class="action-post">SKIP</span> sem_wait(<span class="sem-name">bathroom</span>) — <span class="info">${ev.why}</span>`);
+                    break;
 
-  switch (ev.action) {
-    case 'sem_wait':
-      sems[ev.sem]--;
-      addLog(`${htmlLabel(p)} → <span class="action-wait">sem_wait</span>(<span class="sem-name">${ev.sem}</span>) → ${sems[ev.sem]} — <span class="info">${ev.why}</span>`);
-      break;
+                case 'increment':
+                    if (ev.counter === 'men') men_inside++;
+                    else women_inside++;
+                    addLog(`${htmlLabel(p)} → <span class="info">${ev.why}</span>`);
+                    break;
 
-    case 'sem_post':
-      sems[ev.sem]++;
-      addLog(`${htmlLabel(p)} → <span class="action-post">sem_post</span>(<span class="sem-name">${ev.sem}</span>) → ${sems[ev.sem]} — <span class="info">${ev.why}</span>`);
-      break;
+                case 'decrement':
+                    if (ev.counter === 'men') men_inside--;
+                    else women_inside--;
+                    addLog(`${htmlLabel(p)} → <span class="info">${ev.why}</span>`);
+                    break;
 
-    case 'blocked':
-      addLog(`${htmlLabel(p)} → <span class="action-wait">sem_wait</span>(<span class="sem-name">${ev.sem}</span>) → <span class="action-wait">BLOCKED!</span> — <span class="info">${ev.why}</span>`);
-      break;
+                case 'enter':
+                    p.state = 'inside';
+                    addLog(`${htmlLabel(p)} → <span class="action-post">${ev.why}</span>`);
+                    break;
 
-    case 'unblocked':
-      sems[ev.sem]--;
-      addLog(`${htmlLabel(p)} → <span class="action-post">UNBLOCKED!</span> <span class="sem-name">${ev.sem}</span> → ${sems[ev.sem]} — <span class="info">${ev.why}</span>`);
-      break;
+                case 'leave':
+                    p.state = 'working';
+                    addLog(`${htmlLabel(p)} → <span class="info">${ev.why}</span>`);
+                    break;
+            }
 
-    case 'check':
-    case 'check_exit':
-    case 'check_exit_release':
-      addLog(`${htmlLabel(p)} → <span class="info">${ev.why}</span>`);
-      break;
+            render();
+        }
 
-    case 'skip_bathroom':
-      addLog(`${htmlLabel(p)} → <span class="action-post">SKIP</span> sem_wait(<span class="sem-name">bathroom</span>) — <span class="info">${ev.why}</span>`);
-      break;
+        // --- CONTROLS ---
+        function step() {
+            if (eventIdx >= events.length) return;
+            processEvent(events[eventIdx]);
+            eventIdx++;
+            if (eventIdx >= events.length) stopPlay();
+        }
 
-    case 'increment':
-      if (ev.counter === 'men') men_inside++;
-      else women_inside++;
-      addLog(`${htmlLabel(p)} → <span class="info">${ev.why}</span>`);
-      break;
+        function togglePlay() {
+            if (playing) { stopPlay(); }
+            else { startPlay(); }
+        }
 
-    case 'decrement':
-      if (ev.counter === 'men') men_inside--;
-      else women_inside--;
-      addLog(`${htmlLabel(p)} → <span class="info">${ev.why}</span>`);
-      break;
+        function startPlay() {
+            playing = true;
+            document.getElementById('playBtn').textContent = '⏸ Pause';
+            tick();
+        }
 
-    case 'enter':
-      p.state = 'inside';
-      addLog(`${htmlLabel(p)} → <span class="action-post">${ev.why}</span>`);
-      break;
+        function stopPlay() {
+            playing = false;
+            document.getElementById('playBtn').textContent = '▶ Play';
+            clearTimeout(playTimer);
+        }
 
-    case 'leave':
-      p.state = 'working';
-      addLog(`${htmlLabel(p)} → <span class="info">${ev.why}</span>`);
-      break;
-  }
+        function tick() {
+            if (!playing || eventIdx >= events.length) { stopPlay(); return; }
+            step();
+            const speed = parseInt(document.getElementById('speedSlider').value);
+            playTimer = setTimeout(tick, speed);
+        }
 
-  render();
-}
+        function reset() {
+            stopPlay();
+            sems = { mutex: 1, bathroom: 1, turnstile: 1 };
+            men_inside = 0; women_inside = 0;
+            stepCount = 0; eventIdx = 0;
+            people.forEach(p => p.state = 'waiting');
+            document.getElementById('log').innerHTML = '';
+            render();
+            buildEvents();
+        }
 
-// --- CONTROLS ---
-function step() {
-  if (eventIdx >= events.length) return;
-  processEvent(events[eventIdx]);
-  eventIdx++;
-  if (eventIdx >= events.length) stopPlay();
-}
-
-function togglePlay() {
-  if (playing) { stopPlay(); }
-  else { startPlay(); }
-}
-
-function startPlay() {
-  playing = true;
-  document.getElementById('playBtn').textContent = '⏸ Pause';
-  tick();
-}
-
-function stopPlay() {
-  playing = false;
-  document.getElementById('playBtn').textContent = '▶ Play';
-  clearTimeout(playTimer);
-}
-
-function tick() {
-  if (!playing || eventIdx >= events.length) { stopPlay(); return; }
-  step();
-  const speed = parseInt(document.getElementById('speedSlider').value);
-  playTimer = setTimeout(tick, speed);
-}
-
-function reset() {
-  stopPlay();
-  sems = { mutex: 1, bathroom: 1, turnstile: 1 };
-  men_inside = 0; women_inside = 0;
-  stepCount = 0; eventIdx = 0;
-  people.forEach(p => p.state = 'waiting');
-  document.getElementById('log').innerHTML = '';
-  render();
-  buildEvents();
-}
-
-// --- INIT ---
-buildEvents();
-render();
-</script>
+        // --- INIT ---
+        buildEvents();
+        render();
+    </script>
 
 </body>
+
 </html>

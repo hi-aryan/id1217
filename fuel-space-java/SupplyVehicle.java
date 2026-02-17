@@ -34,7 +34,7 @@ public class SupplyVehicle implements Runnable {
                 System.out.printf("[%d] Supply %d: Arriving with %d nitrogen, %d quantum (trip %d/%d)%n",
                         System.currentTimeMillis(), id, nitrogenSupply, quantumSupply, i + 1, trips);
 
-                station.depositFuel(nitrogenSupply, quantumSupply);
+                station.depositAndRefuel(nitrogenSupply, quantumSupply, nitrogenReturn, quantumReturn);
 
                 System.out.printf("[%d] Supply %d: Deposited fuel (%d N, %d Q)%n",
                         System.currentTimeMillis(), id, nitrogenSupply, quantumSupply);
@@ -45,9 +45,6 @@ public class SupplyVehicle implements Runnable {
                     station.supplyVehicleDone();
                     markedDone = true;
                 }
-
-                // Dock and request return fuel (just like a regular vehicle, per spec)
-                station.requestDockAndRefuel(nitrogenReturn, quantumReturn);
 
                 System.out.printf("[%d] Supply %d: Docked — refueling for return (%d N, %d Q)%n",
                         System.currentTimeMillis(), id, nitrogenReturn, quantumReturn);

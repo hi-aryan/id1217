@@ -34,15 +34,24 @@ public class FuelStation {
         notifyAll();
     }
 
-    // Supply vehicle: deposit fuel without occupying a dock.
-    // Waits only when both tanks are completely full. Deposits as much as fits.
-    public synchronized void depositFuel(int depositN, int depositQ) throws InterruptedException {
+    // Supply vehicle: deposit cargo and reserve return fuel atomically, then wait for dock.
+    public synchronized void depositAndRefuel(int depositN, int depositQ,
+            int returnN, int returnQ) throws InterruptedException {
+        // Wait for space to deposit
         while (nitrogen >= MAX_NITROGEN && quantum >= MAX_QUANTUM) {
             if (activeRegularVehicles == 0) break;
             wait();
         }
-        nitrogen = Math.min(nitrogen + depositN, MAX_NITROGEN);
-        quantum = Math.min(quantum + depositQ, MAX_QUANTUM);
+        // Deposit cargo and reserve return fuel atomically
+        nitrogen = Math.min(nitrogen + depositN, MAX_NITROGEN) - returnN;
+        quantum = Math.min(quantum + depositQ, MAX_QUANTUM) - returnQ;
+        notifyAll();
+
+        // Wait for dock only (return fuel already reserved)
+        while (freeDocks == 0) {
+            wait();
+        }
+        freeDocks--;
         notifyAll();
     }
 

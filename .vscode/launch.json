@@ -6,12 +6,15 @@
             "name": "FuelStationSimulation",
             "request": "launch",
             "mainClass": "FuelStationSimulation",
-            "args": "100 100 1 10 2 5"
+            "args": "100 100 2 15 2 3"
         }
     ]
 }
 // "args": "100 100 2 10 3 5"
 // safe: 100 100 3 10 3 10
 // still fails: 100 100 1 10 2 5
-
-
+// 100 100 1 10 3 10 - single dock
+// 100 100 3 10 1 10 - single supply vehicles
+// 30 30 2 10 3 10 - small tanks
+// 100 100 1 10 1 5 - single dock + single supply (worst case)
+// 100 100 2 15 2 3 - many vehicles, few trips, few docks

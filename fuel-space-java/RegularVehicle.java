@@ -47,6 +47,8 @@ public class RegularVehicle implements Runnable {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             System.err.printf("Vehicle %d interrupted%n", id);
+        } finally {
+            station.regularVehicleDone();
         }
     }
 }

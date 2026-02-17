@@ -2,78 +2,80 @@ public class FuelStation {
     private int nitrogen;
     private int quantum;
     private int freeDocks;
+    private int activeRegularVehicles;
 
     private final int MAX_NITROGEN;
     private final int MAX_QUANTUM;
     private final int MAX_DOCKS;
 
-    public FuelStation(int maxN, int maxQ, int maxV) {
+    public FuelStation(int maxN, int maxQ, int maxV, int numVehicles) {
         this.MAX_NITROGEN = maxN;
         this.MAX_QUANTUM = maxQ;
         this.MAX_DOCKS = maxV;
         this.nitrogen = maxN;
         this.quantum = maxQ;
         this.freeDocks = maxV;
+        this.activeRegularVehicles = numVehicles;
     }
 
-    // Regular vehicle: atomically wait for dock + sufficient fuel
+    // Regular vehicle (or supply return trip): wait for dock + sufficient fuel
     public synchronized void requestDockAndRefuel(int n, int q) throws InterruptedException {
-        // CRITICAL: Check dock AND fuel atomically in while loop
-        // This prevents: vehicle taking dock then blocking for fuel
         while (freeDocks == 0 || nitrogen < n || quantum < q) {
-            wait(); // Release lock and wait
+            wait();
         }
-
-        // Atomically consume resources
         freeDocks--;
         nitrogen -= n;
         quantum -= q;
-    }
-
-    // Supply vehicle: atomically wait for dock + sufficient storage space, then
-    // deposit
-    public synchronized void requestDockAndDeposit(int n, int q) throws InterruptedException {
-        // CRITICAL: Check dock AND storage space atomically
-        while (freeDocks == 0 || nitrogen + n > MAX_NITROGEN || quantum + q > MAX_QUANTUM) {
-            wait();
-        }
-
-        // Take dock and deposit fuel
-        freeDocks--;
-        nitrogen += n;
-        quantum += q;
-
-        // Wake all waiters since fuel is now available
         notifyAll();
     }
 
-    // Supply vehicle already has dock, just waiting for return fuel
-    public synchronized void requestReturnFuel(int n, int q) throws InterruptedException {
-        // Vehicle already holds dock, just wait for fuel
-        while (nitrogen < n || quantum < q) {
-            wait();
+    // Supply vehicle: deposit fuel without occupying a dock.
+    // Deposits each type independently when space is available (zero fuel loss).
+    // When all regular vehicles are done, clamps remaining fuel to avoid deadlock.
+    public synchronized void depositFuel(int depositN, int depositQ) throws InterruptedException {
+        int remainN = depositN;
+        int remainQ = depositQ;
+        while (remainN > 0 || remainQ > 0) {
+            boolean deposited = false;
+            if (remainN > 0 && nitrogen + remainN <= MAX_NITROGEN) {
+                nitrogen += remainN;
+                remainN = 0;
+                deposited = true;
+            }
+            if (remainQ > 0 && quantum + remainQ <= MAX_QUANTUM) {
+                quantum += remainQ;
+                remainQ = 0;
+                deposited = true;
+            }
+            if (remainN > 0 || remainQ > 0) {
+                if (activeRegularVehicles == 0) {
+                    // No consumers left — deposit what fits and proceed
+                    nitrogen = Math.min(nitrogen + remainN, MAX_NITROGEN);
+                    quantum = Math.min(quantum + remainQ, MAX_QUANTUM);
+                    remainN = 0;
+                    remainQ = 0;
+                } else {
+                    if (deposited) notifyAll();
+                    wait();
+                }
+            }
         }
+        notifyAll();
+    }
 
-        nitrogen -= n;
-        quantum -= q;
+    public synchronized void regularVehicleDone() {
+        activeRegularVehicles--;
+        notifyAll();
     }
 
     // Release dock when leaving
     public synchronized void releaseDock() {
         freeDocks++;
-
-        // Wake all waiters since dock (and possibly fuel) now available
         notifyAll();
     }
 
-    // Thread-safe status printing
     public synchronized void printStatus() {
         System.out.printf("    [Station: N=%d/%d, Q=%d/%d, Docks=%d/%d]%n",
                 nitrogen, MAX_NITROGEN, quantum, MAX_QUANTUM, freeDocks, MAX_DOCKS);
-    }
-
-    // For debugging - check if deposit would fit
-    public synchronized boolean canAccommodateDeposit(int n, int q) {
-        return nitrogen + n <= MAX_NITROGEN && quantum + q <= MAX_QUANTUM;
     }
 }

@@ -33,37 +33,20 @@ public class SupplyVehicle implements Runnable {
                 System.out.printf("[%d] Supply %d: Arriving with %d nitrogen, %d quantum (trip %d/%d)%n",
                         System.currentTimeMillis(), id, nitrogenSupply, quantumSupply, i + 1, trips);
 
-                // Request dock and deposit fuel
-                station.requestDockAndDeposit(nitrogenSupply, quantumSupply);
+                // Deposit net fuel (gross minus return; supply keeps return fuel in own tanks)
+                int netN = nitrogenSupply - nitrogenReturn;
+                int netQ = quantumSupply - quantumReturn;
+                station.depositFuel(netN, netQ);
 
-                System.out.printf("[%d] Supply %d: Docked and depositing fuel%n",
-                        System.currentTimeMillis(), id);
+                System.out.printf("[%d] Supply %d: Deposited net fuel (%d N, %d Q) — kept return (%d N, %d Q)%n",
+                        System.currentTimeMillis(), id, netN, netQ, nitrogenReturn, quantumReturn);
                 station.printStatus();
 
-                // Depositing time
-                Thread.sleep(random.nextInt(300) + 100);
-
-                // Release dock after depositing (prevents hold-and-wait deadlock)
-                station.releaseDock();
-
-                System.out.printf("[%d] Supply %d: Requesting return fuel: %d nitrogen, %d quantum%n",
-                        System.currentTimeMillis(), id, nitrogenReturn, quantumReturn);
-
-                // Re-acquire dock + fuel atomically for return trip (same as regular vehicles)
-                station.requestDockAndRefuel(nitrogenReturn, quantumReturn);
-
-                System.out.printf("[%d] Supply %d: Refueling for return trip%n",
-                        System.currentTimeMillis(), id);
-                station.printStatus();
-
-                // Refueling time
+                // Service time
                 Thread.sleep(random.nextInt(300) + 100);
 
                 System.out.printf("[%d] Supply %d: Departing%n",
                         System.currentTimeMillis(), id);
-
-                // Release dock
-                station.releaseDock();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
     pthread_create(&women[i], NULL, woman_thread, &women_ids[i]);
   }
 
-  // wait for threads (they run forever)
+  // wait for threads (they run forever) so this blocks main function forever
   for (int i = 0; i < num_men; i++) {
     pthread_join(men[i], NULL);
   }
@@ -171,11 +171,11 @@ int main(int argc, char *argv[]) {
   }
 
   // cleanup named semaphores
-  sem_close(man_mutex);
+  sem_close(man_mutex); // OS does this automatically on exit (ctrl+c) also
   sem_close(woman_mutex);
   sem_close(bathroom);
   sem_close(turnstile);
-  sem_unlink(SEM_MAN_MUTEX);
+  sem_unlink(SEM_MAN_MUTEX); // removes semaphore name from the system
   sem_unlink(SEM_WOMAN_MUTEX);
   sem_unlink(SEM_BATHROOM);
   sem_unlink(SEM_TURNSTILE);

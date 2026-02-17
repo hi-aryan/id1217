@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "FuelStationSimulation",
+            "request": "launch",
+            "mainClass": "FuelStationSimulation",
+            "args": "100 100 3 5 2 3"
+        }
+    ]
+}

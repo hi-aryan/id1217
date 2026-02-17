@@ -42,13 +42,16 @@ public class SupplyVehicle implements Runnable {
                 
                 // Depositing time
                 Thread.sleep(random.nextInt(300) + 100);
-                
+
+                // Release dock after depositing (prevents hold-and-wait deadlock)
+                station.releaseDock();
+
                 System.out.printf("[%d] Supply %d: Requesting return fuel: %d nitrogen, %d quantum%n",
                         System.currentTimeMillis(), id, nitrogenReturn, quantumReturn);
-                
-                // Request return fuel (already has dock)
-                station.requestReturnFuel(nitrogenReturn, quantumReturn);
-                
+
+                // Re-acquire dock + fuel atomically for return trip (same as regular vehicles)
+                station.requestDockAndRefuel(nitrogenReturn, quantumReturn);
+
                 System.out.printf("[%d] Supply %d: Refueling for return trip%n",
                         System.currentTimeMillis(), id);
                 station.printStatus();

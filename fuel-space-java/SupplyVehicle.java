@@ -9,10 +9,10 @@ public class SupplyVehicle implements Runnable {
     private final int quantumReturn;
     private final FuelStation station;
     private final Random random;
-    
+
     public SupplyVehicle(int id, int trips, int nitrogenSupply, int quantumSupply,
-                        int nitrogenReturn, int quantumReturn, 
-                        FuelStation station, Random random) {
+            int nitrogenReturn, int quantumReturn,
+            FuelStation station, Random random) {
         this.id = id;
         this.trips = trips;
         this.nitrogenSupply = nitrogenSupply;
@@ -22,24 +22,24 @@ public class SupplyVehicle implements Runnable {
         this.station = station;
         this.random = random;
     }
-    
+
     @Override
     public void run() {
         try {
             for (int i = 0; i < trips; i++) {
                 // Travel to station with supplies
                 Thread.sleep(random.nextInt(1000) + 500);
-                
+
                 System.out.printf("[%d] Supply %d: Arriving with %d nitrogen, %d quantum (trip %d/%d)%n",
                         System.currentTimeMillis(), id, nitrogenSupply, quantumSupply, i + 1, trips);
-                
+
                 // Request dock and deposit fuel
                 station.requestDockAndDeposit(nitrogenSupply, quantumSupply);
-                
+
                 System.out.printf("[%d] Supply %d: Docked and depositing fuel%n",
                         System.currentTimeMillis(), id);
                 station.printStatus();
-                
+
                 // Depositing time
                 Thread.sleep(random.nextInt(300) + 100);
 
@@ -55,13 +55,13 @@ public class SupplyVehicle implements Runnable {
                 System.out.printf("[%d] Supply %d: Refueling for return trip%n",
                         System.currentTimeMillis(), id);
                 station.printStatus();
-                
+
                 // Refueling time
                 Thread.sleep(random.nextInt(300) + 100);
-                
+
                 System.out.printf("[%d] Supply %d: Departing%n",
                         System.currentTimeMillis(), id);
-                
+
                 // Release dock
                 station.releaseDock();
             }

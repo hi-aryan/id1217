@@ -6,7 +6,12 @@
             "name": "FuelStationSimulation",
             "request": "launch",
             "mainClass": "FuelStationSimulation",
-            "args": "100 100 3 5 2 3"
+            "args": "100 100 1 10 2 5"
         }
     ]
 }
+// "args": "100 100 2 10 3 5"
+// safe: 100 100 3 10 3 10
+// still fails: 100 100 1 10 2 5
+
+

@@ -18,7 +18,7 @@ public class FuelStationSimulation {
         long seed = args.length > 6 ? Long.parseLong(args[6]) : System.currentTimeMillis();
 
         Random random = new Random(seed);
-        FuelStation station = new FuelStation(maxNitrogen, maxQuantum, maxDocks, numVehicles);
+        FuelStation station = new FuelStation(maxNitrogen, maxQuantum, maxDocks, numVehicles, numSupply);
 
         System.out.println("=== Fuel Space Station Simulation ===");
         System.out.printf("Max Nitrogen: %d, Max Quantum: %d, Max Docks: %d%n",
@@ -40,7 +40,6 @@ public class FuelStationSimulation {
         // Create supply vehicles
         for (int i = 0; i < numSupply; i++) {
             // Supply 50-65% of capacity (far exceeds vehicle needs)
-            // Increased to account for higher return fuel usage
             int nitrogenSupply = random.nextInt((int) (maxNitrogen * 0.15)) + (int) (maxNitrogen * 0.5);
             int quantumSupply = random.nextInt((int) (maxQuantum * 0.15)) + (int) (maxQuantum * 0.5);
             int nitrogenReturn = random.nextInt(15) + 5; // 5-19 units (like a regular vehicle)

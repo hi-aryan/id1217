@@ -25,6 +25,7 @@ public class SupplyVehicle implements Runnable {
 
     @Override
     public void run() {
+        boolean markedDone = false;
         try {
             for (int i = 0; i < trips; i++) {
                 // Travel to station with supplies
@@ -33,24 +34,40 @@ public class SupplyVehicle implements Runnable {
                 System.out.printf("[%d] Supply %d: Arriving with %d nitrogen, %d quantum (trip %d/%d)%n",
                         System.currentTimeMillis(), id, nitrogenSupply, quantumSupply, i + 1, trips);
 
-                // Deposit net fuel (gross minus return; supply keeps return fuel in own tanks)
-                int netN = nitrogenSupply - nitrogenReturn;
-                int netQ = quantumSupply - quantumReturn;
-                station.depositFuel(netN, netQ);
+                station.depositFuel(nitrogenSupply, quantumSupply);
 
-                System.out.printf("[%d] Supply %d: Deposited net fuel (%d N, %d Q) — kept return (%d N, %d Q)%n",
-                        System.currentTimeMillis(), id, netN, netQ, nitrogenReturn, quantumReturn);
+                System.out.printf("[%d] Supply %d: Deposited fuel (%d N, %d Q)%n",
+                        System.currentTimeMillis(), id, nitrogenSupply, quantumSupply);
                 station.printStatus();
 
-                // Service time
+                // After last deposit, this vehicle will never bring more fuel
+                if (i == trips - 1) {
+                    station.supplyVehicleDone();
+                    markedDone = true;
+                }
+
+                // Dock and request return fuel (just like a regular vehicle, per spec)
+                station.requestDockAndRefuel(nitrogenReturn, quantumReturn);
+
+                System.out.printf("[%d] Supply %d: Docked — refueling for return (%d N, %d Q)%n",
+                        System.currentTimeMillis(), id, nitrogenReturn, quantumReturn);
+                station.printStatus();
+
+                // Refueling time
                 Thread.sleep(random.nextInt(300) + 100);
 
                 System.out.printf("[%d] Supply %d: Departing%n",
                         System.currentTimeMillis(), id);
+
+                station.releaseDock();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             System.err.printf("Supply %d interrupted%n", id);
+        } finally {
+            if (!markedDone) {
+                station.supplyVehicleDone();
+            }
         }
     }
 }

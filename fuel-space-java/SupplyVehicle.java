@@ -38,7 +38,8 @@ public class SupplyVehicle extends Thread {
                 int travelTime = random.nextInt(maxTravelTime) + 200;
                 Thread.sleep(travelTime);
 
-                boolean depositDockAcquired = station.depositFuel(nitrogenDelivery, quantumDelivery, vehicleId);
+                boolean depositDockAcquired = station.depositFuel(nitrogenDelivery, quantumDelivery, vehicleId,
+                        nitrogenForReturn, quantumForReturn);
                 if (!depositDockAcquired) {
                     return;
                 }
@@ -55,8 +56,9 @@ public class SupplyVehicle extends Thread {
                 // Turnaround time (staying at dock)
                 Thread.sleep(50);
 
-                // Express Refuel (Atomic: already at dock)
-                station.expressRefuel(nitrogenForReturn, quantumForReturn, vehicleId);
+                // Refuel using standard method (Station logic handles the fact we hold the
+                // dock)
+                station.requestFuel(nitrogenForReturn, quantumForReturn, vehicleId);
 
                 // Simulate pumping time for refuel
                 try {

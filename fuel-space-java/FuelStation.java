@@ -1,5 +1,7 @@
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Monitor representing the fuel space station.
@@ -37,29 +39,33 @@ public class FuelStation {
         this.occupiedDocks = 0;
 
         this.waitingQueue = new LinkedList<>();
+        this.dockedVehicles = new HashSet<>();
     }
+
+    private final Set<String> dockedVehicles;
 
     /**
      * Supply vehicle deposits fuel.
      * Returns true if docking/deposit succeeded, false if interrupted while
      * waiting.
      */
-    public synchronized boolean depositFuel(int nitrogen, int quantum, String vehicleId) {
+    public synchronized boolean depositFuel(int nitrogen, int quantum, String vehicleId, int returnNitrogen,
+            int returnQuantum) {
         validateAmounts(nitrogen, quantum);
         if (nitrogen > MAX_NITROGEN || quantum > MAX_QUANTUM) {
             throw new IllegalArgumentException("Deposit exceeds station capacity: " + vehicleId);
         }
 
         long startTime = System.currentTimeMillis();
-        FuelRequest request = new FuelRequest(vehicleId, nitrogen, quantum, FuelRequest.RequestType.FUEL_DEPOSIT);
+        FuelRequest request = new FuelRequest(vehicleId, nitrogen, quantum, FuelRequest.RequestType.FUEL_DEPOSIT,
+                returnNitrogen, returnQuantum);
         waitingQueue.add(request);
 
         System.out.printf("[%d ms] %s arrives to DEPOSIT %dL N2, %dL QF (waiting in queue)\n",
                 System.currentTimeMillis(), vehicleId, nitrogen, quantum);
 
-        // Wait until dock is free, full deposit fits, and target becomes first
-        // satisfiable in queue.
-        while (!canSatisfyDeposit(nitrogen, quantum) || !isFirstSatisfiable(request)) {
+        // Wait until dock is free, full deposit fits, AND return fuel is guaranteed.
+        while (!canSatisfyDeposit(nitrogen, quantum, returnNitrogen, returnQuantum) || !isFirstSatisfiable(request)) {
             try {
                 wait();
             } catch (InterruptedException e) {
@@ -74,6 +80,7 @@ public class FuelStation {
         nitrogenLevel += nitrogen;
         quantumLevel += quantum;
         occupiedDocks++;
+        dockedVehicles.add(vehicleId);
         request.setServed(true);
         waitingQueue.remove(request);
 
@@ -105,7 +112,7 @@ public class FuelStation {
         System.out.printf("[%d ms] %s arrives to REQUEST %dL N2, %dL QF (waiting in queue)\n",
                 System.currentTimeMillis(), vehicleId, nitrogen, quantum);
 
-        while (!canSatisfyFuelRequest(nitrogen, quantum) || !isFirstSatisfiable(request)) {
+        while (!canSatisfyFuelRequest(nitrogen, quantum, vehicleId) || !isFirstSatisfiable(request)) {
             try {
                 wait();
             } catch (InterruptedException e) {
@@ -118,7 +125,13 @@ public class FuelStation {
 
         nitrogenLevel -= nitrogen;
         quantumLevel -= quantum;
-        occupiedDocks++;
+
+        // Only increment dock count if we didn't already have one
+        if (!dockedVehicles.contains(vehicleId)) {
+            occupiedDocks++;
+            dockedVehicles.add(vehicleId);
+        }
+
         request.setServed(true);
         waitingQueue.remove(request);
 
@@ -134,37 +147,6 @@ public class FuelStation {
     }
 
     /**
-     * Specialized method for supply vehicles that ALREADY hold a dock.
-     * Guaranteed to succeed if the supply drops exceeded the return requirements
-     * (which they should by design).
-     */
-    public synchronized void expressRefuel(int nitrogen, int quantum, String vehicleId) {
-        // No validation against capacity since we assume the caller JUST deposited
-        // enough.
-        // No queueing since caller holds the dock.
-
-        if (nitrogenLevel < nitrogen || quantumLevel < quantum) {
-            System.err.printf("[%d ms] CRITICAL ERROR: Supply vehicle %s cannot express refuel! Station empty!\n",
-                    System.currentTimeMillis(), vehicleId);
-            // In a real system, this would be a catastrophic state.
-            // For this sim, we might just let it go negative or throw.
-            // But since we are fixing the deadlock, let's assume valid logic.
-        }
-
-        nitrogenLevel -= nitrogen;
-        quantumLevel -= quantum;
-
-        // Docks count remains same (already occupied)
-
-        System.out.printf("[%d ms] %s EXPRESS REFUELING (held dock) | N2: %d/%d, QF: %d/%d, Docks: %d/%d\n",
-                System.currentTimeMillis(), vehicleId,
-                nitrogenLevel, MAX_NITROGEN, quantumLevel, MAX_QUANTUM,
-                occupiedDocks, MAX_DOCKS);
-
-        notifyAll();
-    }
-
-    /**
      * Vehicle releases docking spot and departs.
      */
     public synchronized void releaseDock(String vehicleId) {
@@ -176,6 +158,7 @@ public class FuelStation {
         }
 
         occupiedDocks--;
+        dockedVehicles.remove(vehicleId);
         System.out.printf("[%d ms] %s DEPARTED | N2: %d/%d, QF: %d/%d, Docks: %d/%d\n",
                 System.currentTimeMillis(), vehicleId,
                 nitrogenLevel, MAX_NITROGEN, quantumLevel, MAX_QUANTUM,
@@ -190,16 +173,33 @@ public class FuelStation {
         }
     }
 
-    private boolean canSatisfyDeposit(int nitrogen, int quantum) {
-        return occupiedDocks < MAX_DOCKS
-                && nitrogenLevel + nitrogen <= MAX_NITROGEN
+    private boolean canSatisfyDeposit(int nitrogen, int quantum, int requiredReturnNitrogen,
+            int requiredReturnQuantum) {
+        // SAFE ENTRY CHECK:
+        // Do not enter if the station cannot provide the return fuel immediately after
+        // deposit.
+        // We calculate the POST-DEPOSIT levels and check if they satisfy the return
+        // requirement.
+
+        boolean spaceForDeposit = nitrogenLevel + nitrogen <= MAX_NITROGEN
                 && quantumLevel + quantum <= MAX_QUANTUM;
+
+        boolean fuelForReturn = (nitrogenLevel + nitrogen) >= requiredReturnNitrogen
+                && (quantumLevel + quantum) >= requiredReturnQuantum;
+
+        return occupiedDocks < MAX_DOCKS && spaceForDeposit && fuelForReturn;
     }
 
-    private boolean canSatisfyFuelRequest(int nitrogen, int quantum) {
-        return occupiedDocks < MAX_DOCKS
-                && nitrogenLevel >= nitrogen
-                && quantumLevel >= quantum;
+    private boolean canSatisfyFuelRequest(int nitrogen, int quantum, String vehicleId) {
+        // If vehicle is already docked, it doesn't need a new dock.
+        boolean hasDock = dockedVehicles.contains(vehicleId);
+        boolean waitingForDock = !hasDock && occupiedDocks >= MAX_DOCKS;
+
+        if (waitingForDock) {
+            return false;
+        }
+
+        return nitrogenLevel >= nitrogen && quantumLevel >= quantum;
     }
 
     /**
@@ -213,11 +213,12 @@ public class FuelStation {
             }
 
             if (req.getType() == FuelRequest.RequestType.FUEL_DEPOSIT) {
-                if (canSatisfyDeposit(req.getNitrogenAmount(), req.getQuantumAmount())) {
+                if (canSatisfyDeposit(req.getNitrogenAmount(), req.getQuantumAmount(),
+                        req.getReturnNitrogen(), req.getReturnQuantum())) {
                     return false;
                 }
             } else {
-                if (canSatisfyFuelRequest(req.getNitrogenAmount(), req.getQuantumAmount())) {
+                if (canSatisfyFuelRequest(req.getNitrogenAmount(), req.getQuantumAmount(), req.getVehicleId())) {
                     return false;
                 }
             }

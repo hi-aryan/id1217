@@ -1,54 +1,53 @@
 import java.util.Random;
 
-public class RegularVehicle implements Runnable {
-    private final int id;
-    private final int trips;
-    private final int nitrogenNeed;
-    private final int quantumNeed;
+/**
+ * Regular vehicle that periodically visits the station to request fuel.
+ */
+public class RegularVehicle extends Thread {
     private final FuelStation station;
+    private final String vehicleId;
+    private final int nitrogenNeeded;
+    private final int quantumNeeded;
+    private final int numTrips;
     private final Random random;
+    private final int maxTravelTime;
+    private final int maxServiceTime;
 
-    public RegularVehicle(int id, int trips, int nitrogenNeed, int quantumNeed,
-            FuelStation station, Random random) {
-        this.id = id;
-        this.trips = trips;
-        this.nitrogenNeed = nitrogenNeed;
-        this.quantumNeed = quantumNeed;
+    public RegularVehicle(FuelStation station, int id, int nitrogenNeeded,
+            int quantumNeeded, int numTrips,
+            int maxTravelTime, int maxServiceTime) {
         this.station = station;
-        this.random = random;
+        this.vehicleId = "Vehicle-" + id;
+        this.nitrogenNeeded = nitrogenNeeded;
+        this.quantumNeeded = quantumNeeded;
+        this.numTrips = numTrips;
+        this.random = new Random();
+        this.maxTravelTime = maxTravelTime;
+        this.maxServiceTime = maxServiceTime;
     }
 
     @Override
     public void run() {
-        try {
-            for (int i = 0; i < trips; i++) {
-                // Travel to station (random delay)
-                Thread.sleep(random.nextInt(1000) + 500);
+        for (int trip = 1; trip <= numTrips; trip++) {
+            try {
+                int travelTime = random.nextInt(maxTravelTime) + 100;
+                Thread.sleep(travelTime);
 
-                System.out.printf("[%d] Vehicle %d: Requesting %d nitrogen, %d quantum (trip %d/%d)%n",
-                        System.currentTimeMillis(), id, nitrogenNeed, quantumNeed, i + 1, trips);
+                boolean dockAcquired = station.requestFuel(nitrogenNeeded, quantumNeeded, vehicleId);
+                if (!dockAcquired) {
+                    return;
+                }
 
-                // Request dock and fuel atomically
-                station.requestDockAndRefuel(nitrogenNeed, quantumNeed);
-
-                System.out.printf("[%d] Vehicle %d: Docked and refueling%n",
-                        System.currentTimeMillis(), id);
-                station.printStatus();
-
-                // Refueling time
-                Thread.sleep(random.nextInt(300) + 100);
-
-                System.out.printf("[%d] Vehicle %d: Departing%n",
-                        System.currentTimeMillis(), id);
-
-                // Release dock
-                station.releaseDock();
+                try {
+                    int serviceTime = random.nextInt(maxServiceTime) + 50;
+                    Thread.sleep(serviceTime);
+                } finally {
+                    station.releaseDock(vehicleId);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            System.err.printf("Vehicle %d interrupted%n", id);
-        } finally {
-            station.regularVehicleDone();
         }
     }
 }

@@ -7,6 +7,12 @@
             "request": "launch",
             "mainClass": "FuelStationSimulation",
             "args": "100 100 2 15 2 3"
+        },
+        {
+            "type": "java",
+            "name": "SpaceSimulation",
+            "request": "launch",
+            "mainClass": "SpaceSimulation"
         }
     ]
 }

@@ -65,7 +65,7 @@ public class FuelStationSimulation {
         int initialNitrogen = maxNitrogen;
         int initialQuantum = maxQuantum;
         if (totalDepositEvents > 0) {
-            // Guarantee at least one delivery can fit from the start.
+            // Guarantee at least one delivery can fit from the start to avoid deposit vehicle blocking from the start
             initialNitrogen = Math.max(0, maxNitrogen - supplyNitrogen);
             initialQuantum = Math.max(0, maxQuantum - supplyQuantum);
         }

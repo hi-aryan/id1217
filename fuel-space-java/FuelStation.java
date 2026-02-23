@@ -207,6 +207,7 @@ public class FuelStation {
      * satisfiable.
      */
     private boolean isFirstSatisfiable(FuelRequest targetRequest) {
+        // iterate through queue from start
         for (FuelRequest req : waitingQueue) {
             if (req == targetRequest) {
                 return true;
